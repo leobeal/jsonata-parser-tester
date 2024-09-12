@@ -1,13 +1,13 @@
-const {fromZonedTime, toZonedTime} = require('date-fns-tz');
+const {zonedTimeToUtc} = require('date-fns-tz');
 const jsonata = require('jsonata');
 const jsonDiff = require('json-diff');
 const fs = require('fs');
 
 const toTimestampInSecondsFromIsoDateTime = (datetime, timezone) => {
-    const date = new Date(datetime);
-    const utcDate = fromZonedTime(date, timezone ?? 'Europe/Berlin');
 
-    return Math.round(utcDate.getTime() / 1000);
+    const date = zonedTimeToUtc(datetime, timezone || 'Europe/Berlin');
+
+    return Math.round(date / 1000);
 }
 
 (async () => {
@@ -15,8 +15,14 @@ const toTimestampInSecondsFromIsoDateTime = (datetime, timezone) => {
     const expected = fs.readFileSync('tests.json', 'utf8');
     const cases = JSON.parse(expected);
 
-    for (const c of cases['data']) {
+    for (const [key, c] of Object.entries(cases['data'])) {
         const expression = jsonata(c['rule']);
+
+        if (key !== 'shipping_notice') {
+            continue;
+        }
+
+        console.log(key)
 
         expression.registerFunction(
             'toTimestampInSecondsFromIsoDateTime',
@@ -31,14 +37,14 @@ const toTimestampInSecondsFromIsoDateTime = (datetime, timezone) => {
             console.log('Diff:')
             console.log(jsonDiff.diffString(result.payloads[0], d['canonical']));
 
-            console.log('----------------------')
-            console.log('Result:')
+            //console.log('----------------------')
+            //console.log('Result:')
             //print json pretty
-            console.log(JSON.stringify(result.payloads[0], null, 2));
+            //console.log(JSON.stringify(result.payloads[0], null, 2));
 
-            console.log('----------------------')
-            console.log('Expected:')
-            console.log(JSON.stringify(d['canonical'], null, 2));
+            //console.log('----------------------')
+            //console.log('Expected:')
+            //console.log(JSON.stringify(d['canonical'], null, 2));
         }
     }
 })()
